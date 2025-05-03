@@ -1,14 +1,25 @@
 # Crypto ETL Pipeline Project
 
-✅ **Description**
+✅ **Description**  
 An end-to-end Python ETL pipeline that:
-- Extracts cryptocurrency data from CoinGecko API
-- Transforms data using pandas
-- Loads data into PostgreSQL
+- Extracts cryptocurrency data from the CoinGecko API
+- Transforms and enriches the data using pandas
+- Loads the data into a PostgreSQL database
 
-✅ **Setup**
-1. Clone repo
-2. Set up Python virtualenv
-3. Install:
+✅ **Tech Stack**
+- Python
+- pandas
+- SQLAlchemy
+- PostgreSQL
+- Airflow
+- CoinGecko API
+
+---
+
+## ⚙️ Setup Instructions
+
+1. Clone this repo  
+2. Set up Python virtual environment:
    ```bash
-   pip install -r requirements.txt# crypto-etl-pipeline
+   python -m venv venv
+   source venv/bin/activate
