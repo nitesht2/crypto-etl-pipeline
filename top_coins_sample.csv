@@ -1,0 +1,6 @@
+id,symbol,name,current_price,market_cap,total_volume,price_change_percentage_24h,price_change_percentage_7d_in_currency,last_updated,is_volatile_24h
+bitcoin,btc,Bitcoin,96249.0,1911512142654,13555025618.0,-0.46,1.98,2025-05-03 22:22:49,False
+ethereum,eth,Ethereum,1838.37,221932903236,6368991973.0,0.08,1.38,2025-05-03 22:22:50,False
+tether,usdt,Tether,1.0,149214588096,14834647523.0,-0.02,-0.01,2025-05-03 22:22:49,False
+ripple,xrp,XRP,2.19,128046791508,1231401651.0,-0.56,-0.09,2025-05-03 22:22:49,False
+binancecoin,bnb,BNB,599.18,87411287480,392755895.0,-0.14,-1.51,2025-05-03 22:22:50,False
