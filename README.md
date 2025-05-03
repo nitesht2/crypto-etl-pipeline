@@ -11,4 +11,4 @@ An end-to-end Python ETL pipeline that:
 2. Set up Python virtualenv
 3. Install:
    ```bash
-   pip install -r requirements.txt
+   pip install -r requirements.txt# crypto-etl-pipeline
