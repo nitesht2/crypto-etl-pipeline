@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 def load_data(
     input_file="top_coins_transformed.csv",
     db_user="crypto_user",
-    db_pass="Nepal123$",  # ← replace with the password you set in psql
+    db_pass=os.environ.get("DB_PASS", "")",  # ← replace with the password you set in psql
     db_host="localhost",
     db_port="5432",
     db_name="crypto_db",
