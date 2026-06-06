@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/banner.png" alt="Crypto ETL Pipeline" width="100%">
+</p>
+
 # Crypto ETL Pipeline
 
 **An end-to-end ETL pipeline that pulls live cryptocurrency market data, enriches it, and loads it into a PostgreSQL warehouse** — built in clean, single-responsibility stages (extract → transform → load) and schedulable with Airflow.
