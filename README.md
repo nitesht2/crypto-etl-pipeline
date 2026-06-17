@@ -48,14 +48,18 @@ source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-Database credentials are read from environment variables — set them before running `load.py`:
+Database credentials are read from the environment (never hard-coded). Copy the
+example file and fill in your values — `.env` is git-ignored:
 
 ```bash
-export DB_USER=crypto_user
-export DB_PASS=your_password
-export DB_HOST=localhost
-export DB_PORT=5432
-export DB_NAME=crypto_db
+cp .env.example .env
+# edit .env: DB_USER, DB_PASS, DB_HOST, DB_PORT, DB_NAME
+```
+
+Create the warehouse table once:
+
+```bash
+psql -d crypto_db -f sql/schema.sql
 ```
 
 Then run the pipeline:
@@ -72,7 +76,11 @@ The `fact_coin_price` table captures one row per coin per run: `id`, `symbol`, `
 
 ## Scheduling
 
-Wrap the three stages in an Airflow DAG (`extract >> transform >> load`) on a `@daily` or hourly schedule to keep `fact_coin_price` continuously updated.
+An Airflow DAG is included at [`dags/crypto_etl_dag.py`](dags/crypto_etl_dag.py).
+It wires the three stages as `extract >> transform >> load` on a `@daily`
+schedule (with retries) so `fact_coin_price` stays continuously updated. Drop the
+file into your Airflow `dags/` folder — it reuses the same functions as the CLI
+scripts, so there's a single source of truth for the pipeline logic.
 
 ## License
 

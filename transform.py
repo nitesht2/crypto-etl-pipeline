@@ -1,29 +1,35 @@
-# Import pandas library to work with tabular data
+"""Transform stage: clean the extracted CSV and derive analytic fields.
+
+- Parse `last_updated` to a real timestamp
+- Round price / percentage fields for readability
+- Rename the verbose 7d column to match the warehouse schema
+- Derive `is_volatile_24h` (abs 24h change > 10%)
+"""
 import pandas as pd
 
-# Define a function to transform the data
-def transform_data(input_file="top_coins.csv", output_file="top_coins_transformed.csv"):
-    # Load the extracted data from the CSV file into a DataFrame
+VOLATILITY_THRESHOLD = 10.0  # percent
+
+
+def transform_data(input_file="top_coins.csv", output_file="top_coins_transformed.csv") -> pd.DataFrame:
     df = pd.read_csv(input_file)
 
-    # Convert 'last_updated' column from string to datetime format
-    df['last_updated'] = pd.to_datetime(df['last_updated'])
+    df["last_updated"] = pd.to_datetime(df["last_updated"], errors="coerce")
 
-    # Round numeric columns to 2 decimal places for better readability and consistency
-    df['current_price'] = df['current_price'].round(2)
-    df['price_change_percentage_24h'] = df['price_change_percentage_24h'].round(2)
-    df['price_change_percentage_7d_in_currency'] = df['price_change_percentage_7d_in_currency'].round(2)
+    # Match the documented warehouse column name (fact_coin_price).
+    df = df.rename(
+        columns={"price_change_percentage_7d_in_currency": "price_change_percentage_7d"}
+    )
 
-    # Add a new column: 'is_volatile_24h'
-    # Mark as True if the absolute value of the 24h price change is greater than 10%
-    df['is_volatile_24h'] = df['price_change_percentage_24h'].abs() > 10
+    for col in ["current_price", "price_change_percentage_24h", "price_change_percentage_7d"]:
+        df[col] = df[col].round(2)
 
-    # Save the transformed DataFrame to a new CSV file
+    # NaN 24h change -> not volatile (fillna avoids NaN leaking into the flag).
+    df["is_volatile_24h"] = df["price_change_percentage_24h"].abs().fillna(0) > VOLATILITY_THRESHOLD
+
     df.to_csv(output_file, index=False)
+    print(f"Transformed {len(df)} rows -> {output_file}")
+    return df
 
-    # Print a success message to the console
-    print(f"✅ Data transformed and saved to {output_file}")
 
-# This block runs if the script is executed directly (not imported as a module)
 if __name__ == "__main__":
     transform_data()

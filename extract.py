@@ -1,62 +1,66 @@
-# Import the requests library to make HTTP requests to the API
+"""Extract stage: pull the top coins by market cap from the CoinGecko API.
+
+Writes a flat `top_coins.csv` that the transform stage picks up. The HTTP call
+is wrapped with a timeout and automatic retries because the CoinGecko free tier
+rate-limits aggressively (HTTP 429).
+"""
 import requests
-# Import pandas to work with tabular data (like DataFrames)
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import pandas as pd
 
-# Define a function to extract the top cryptocurrencies from the CoinGecko API
-def extract_top_coins(vs_currency="usd", per_page=100, page=1):
-    # Define the API endpoint URL
-    url = "https://api.coingecko.com/api/v3/coins/markets"
-    
-    # Define the parameters we want to pass to the API
-    params = {
-        "vs_currency": vs_currency,               # Currency to show prices in (default: USD)
-        "order": "market_cap_desc",               # Sort by market cap, descending
-        "per_page": per_page,                     # Number of coins per page (max: 250)
-        "page": page,                             # Page number (default: 1)
-        "price_change_percentage": "24h,7d"      # Include % change over 24h and 7d
-    }
-    
-    # Make the GET request to the API with parameters
-    response = requests.get(url, params=params)
-    
-    # Check if the request was successful (HTTP 200 OK)
-    if response.status_code == 200:
-        # Parse the JSON response into a Python object
-        data = response.json()
-        
-        # Use pandas to normalize the nested JSON into a flat DataFrame
-        df = pd.json_normalize(data)
-        
-        # Select only the important columns we care about
-        df = df[[
-            'id',                                 # Coin ID (e.g., bitcoin)
-            'symbol',                             # Symbol (e.g., BTC)
-            'name',                               # Name (e.g., Bitcoin)
-            'current_price',                      # Current price in USD
-            'market_cap',                         # Market capitalization
-            'total_volume',                       # Trading volume over 24h
-            'price_change_percentage_24h',        # % price change over 24h
-            'price_change_percentage_7d_in_currency',  # % price change over 7d
-            'last_updated'                        # Timestamp of last update
-        ]]
-        
-        # Return the DataFrame so we can use it later
-        return df
-    else:
-        # If the API call failed, raise an exception with the error code
-        raise Exception(f"API call failed with status code {response.status_code}")
+API_URL = "https://api.coingecko.com/api/v3/coins/markets"
 
-# This block runs if we call the script directly (not when imported as a module)
+# Columns we keep from the (much wider) API response.
+COLUMNS = [
+    "id",
+    "symbol",
+    "name",
+    "current_price",
+    "market_cap",
+    "total_volume",
+    "price_change_percentage_24h",
+    "price_change_percentage_7d_in_currency",
+    "last_updated",
+]
+
+
+def _session() -> requests.Session:
+    """A requests session that retries on rate-limit / transient 5xx errors."""
+    retry = Retry(
+        total=4,
+        backoff_factor=2,  # waits 2s, 4s, 8s, 16s between attempts
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=("GET",),
+    )
+    session = requests.Session()
+    session.mount("https://", HTTPAdapter(max_retries=retry))
+    return session
+
+
+def extract_top_coins(vs_currency="usd", per_page=100, page=1, timeout=30) -> pd.DataFrame:
+    """Fetch the top `per_page` coins by market cap and return a flat DataFrame."""
+    params = {
+        "vs_currency": vs_currency,
+        "order": "market_cap_desc",
+        "per_page": per_page,
+        "page": page,
+        "price_change_percentage": "24h,7d",
+    }
+
+    response = _session().get(API_URL, params=params, timeout=timeout)
+    response.raise_for_status()
+
+    df = pd.json_normalize(response.json())
+
+    missing = set(COLUMNS) - set(df.columns)
+    if missing:
+        raise ValueError(f"API response is missing expected columns: {sorted(missing)}")
+
+    return df[COLUMNS]
+
+
 if __name__ == "__main__":
-    # Call the extract function and store the DataFrame
-    df = extract_top_coins()
-    
-    # Print the first 5 rows so we can check the data in the terminal
-    print(df.head())
-    
-    # Save the DataFrame as a CSV file called 'top_coins.csv' (no index column)
-    df.to_csv("top_coins.csv", index=False)
-    
-    # Print a success message
-    print("✅ Data extracted and saved to top_coins.csv")
+    coins = extract_top_coins()
+    coins.to_csv("top_coins.csv", index=False)
+    print(f"Extracted {len(coins)} coins -> top_coins.csv")
